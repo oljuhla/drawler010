@@ -42,10 +42,8 @@ body {
 
 #app {
   display: flex;
-  height: 100dvh;
-  /* dynamic viewport height — accounts for iPad Safari chrome */
+  height: 100dvh; /* dynamic viewport height — accounts for iPad Safari chrome */
   width: 100vw;
-  gap: 0;
   overflow: hidden;
 }
 
@@ -158,12 +156,6 @@ body {
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
-}
-
-.tool-label svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
 }
 
 .tool-label input[type="range"] {
@@ -285,13 +277,16 @@ select,
   font-size: 14px;
   line-height: 1.5;
   padding: 10px 12px;
-  resize: none;
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s;
   -webkit-appearance: none;
   appearance: none;
 }
+
+textarea { resize: none; }
+
+.setting-input { width: 100%; }
 
 textarea:focus,
 select:focus,
@@ -305,26 +300,6 @@ select {
   background-position: right 8px center;
   background-size: 16px;
   padding-right: 32px;
-}
-
-.setting-input {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.5;
-  padding: 10px 12px;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.15s;
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-}
-
-.setting-input:focus {
-  border-color: var(--accent);
 }
 
 /* ── Settings Modal ── */
@@ -354,29 +329,28 @@ select {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-#settings-actions button {
+#settings-save-btn,
+#settings-close-btn {
   padding: 12px;
   border-radius: var(--radius);
-  border: none;
-  background: var(--accent);
-  color: var(--text);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
 
-#settings-actions button:hover {
-  background: var(--accent-hover);
+#settings-save-btn {
+  border: none;
+  background: var(--accent);
+  color: var(--text);
 }
 
-#settings-actions button:active {
-  transform: scale(0.97);
-}
+#settings-save-btn:hover { background: var(--accent-hover); }
 
-#settings-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
+#settings-save-btn:active,
+#settings-close-btn:active { transform: scale(0.97); }
+
+#settings-close-btn:hover { background: rgba(255, 255, 255, 0.1); }
 
 /* ── Sliders ── */
 
