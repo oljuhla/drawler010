@@ -249,11 +249,35 @@
     }
   }
 
+  /**
+   * List available models from SwarmUI.
+   * @returns {Promise<string[]>}
+   */
+  async function listModels() {
+    try {
+      const res = await fetchSwarm('/API/ListT2IParams', {});
+      const modelParam = res.list.find(p => p.id === 'model');
+      if (modelParam && modelParam.values) {
+        return modelParam.values;
+      }
+      // Fallback to ListModels if ListT2IParams doesn't have it
+      const res2 = await fetchSwarm('/API/ListModels', { path: "" });
+      if (res2.files) {
+        return res2.files.map(f => f.name || f);
+      }
+      return [];
+    } catch (err) {
+      console.error('[api] Failed to list models:', err);
+      return [];
+    }
+  }
+
   // ── Expose ────────────────────────────────────────────────────────────────
 
   window.SwarmAPI = {
     generate,
     checkConnectivity,
+    listModels,
     getConfig: () => ({ ...CONFIG }),
     updateConfig: (updates) => {
       if (updates.baseURL !== undefined) {

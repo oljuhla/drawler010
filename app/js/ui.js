@@ -27,6 +27,9 @@
 
   const brushSizeInput = $('brush-size');
   const brushSizeVal = $('brush-size-val');
+  const brushColorInput = $('brush-color');
+  const brushPreview = $('brush-preview');
+
   const stepsInput = $('steps-input');
   const stepsVal = $('steps-val');
   const strengthInput = $('strength-input');
@@ -57,6 +60,7 @@
   const settingsModal = $('settings-modal');
   const settingsSaveBtn = $('settings-save-btn');
   const settingsCloseBtn = $('settings-close-btn');
+  const refreshModelsBtn = $('refresh-models-btn');
   const settingUrl = $('setting-url');
   const settingModel = $('setting-model');
   const settingControlnet = $('setting-controlnet');
@@ -73,6 +77,9 @@
     const b = localStorage.getItem('drawler_brushSize');
     if (b !== null) { brushSizeInput.value = b; brushSizeVal.textContent = b; }
 
+    const c = localStorage.getItem('drawler_brushColor');
+    if (c !== null) brushColorInput.value = c;
+
     const st = localStorage.getItem('drawler_steps');
     if (st !== null) { stepsInput.value = st; stepsVal.textContent = st; }
 
@@ -87,6 +94,7 @@
     localStorage.setItem('drawler_prompt', promptInput.value);
     localStorage.setItem('drawler_negPrompt', negPromptInput.value);
     localStorage.setItem('drawler_brushSize', brushSizeInput.value);
+    localStorage.setItem('drawler_brushColor', brushColorInput.value);
     localStorage.setItem('drawler_steps', stepsInput.value);
     localStorage.setItem('drawler_strength', strengthInput.value);
     localStorage.setItem('drawler_cfg', cfgInput.value);
@@ -109,19 +117,34 @@
     bindSettingsModal();
 
     // Set initial brush options
-    DrawingCanvas.setOptions({ size: parseInt(brushSizeInput.value, 10) });
+    updateBrush();
 
     // Check SwarmUI connectivity (non-blocking)
     checkSwarm();
   }
 
-  // ── Sliders ───────────────────────────────────────────────────────────────
+  // ── Sliders / Inputs ──────────────────────────────────────────────────────
+
+  function updateBrush() {
+    const size = parseInt(brushSizeInput.value, 10);
+    const color = brushColorInput.value;
+    DrawingCanvas.setOptions({ size, color });
+
+    // Update visual preview
+    brushPreview.style.width = size + 'px';
+    brushPreview.style.height = size + 'px';
+    brushPreview.style.background = color;
+  }
 
   function bindSliders() {
     brushSizeInput.addEventListener('input', () => {
-      const v = parseInt(brushSizeInput.value, 10);
-      brushSizeVal.textContent = v;
-      DrawingCanvas.setOptions({ size: v });
+      brushSizeVal.textContent = brushSizeInput.value;
+      updateBrush();
+      saveUIState();
+    });
+
+    brushColorInput.addEventListener('input', () => {
+      updateBrush();
       saveUIState();
     });
 
@@ -303,9 +326,9 @@
     settingsBtn.addEventListener('click', () => {
       const config = SwarmAPI.getConfig();
       settingUrl.value = config.baseURL;
-      settingModel.value = config.model;
       settingControlnet.value = config.controlnetModel;
-      settingsModal.classList.remove('hidden');
+      settingsModal.classList.remove('hidden');  // open immediately — select shows "(Loading models...)"
+      fetchModels(config.model);                 // populate async in background
     });
 
     const closeSettings = () => settingsModal.classList.add('hidden');
@@ -313,6 +336,13 @@
     settingsCloseBtn.addEventListener('click', closeSettings);
     settingsModal.addEventListener('click', e => {
       if (e.target === settingsModal) closeSettings();
+    });
+
+    refreshModelsBtn.addEventListener('click', async () => {
+      refreshModelsBtn.disabled = true;
+      const current = settingModel.value;
+      await fetchModels(current);
+      refreshModelsBtn.disabled = false;
     });
 
     settingsSaveBtn.addEventListener('click', () => {
@@ -329,6 +359,35 @@
       closeSettings();
       checkSwarm(); // re-check connectivity after change
     });
+  }
+
+  async function fetchModels(currentValue) {
+    settingModel.innerHTML = '<option value="">(Loading models...)</option>';
+    try {
+      const models = await SwarmAPI.listModels();
+      if (models && models.length > 0) {
+        settingModel.innerHTML = '';
+        models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = m;
+          if (m === currentValue) opt.selected = true;
+          settingModel.appendChild(opt);
+        });
+      } else {
+        settingModel.innerHTML = '<option value="">(No models found)</option>';
+        if (currentValue) {
+           const opt = document.createElement('option');
+           opt.value = currentValue;
+           opt.textContent = currentValue;
+           opt.selected = true;
+           settingModel.appendChild(opt);
+        }
+      }
+    } catch (err) {
+      console.error('[ui] Failed to fetch models:', err);
+      settingModel.innerHTML = '<option value="">Error loading models</option>';
+    }
   }
 
   // ── SwarmUI connectivity check ─────────────────────────────────────────────

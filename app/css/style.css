@@ -172,6 +172,45 @@ body {
   cursor: pointer;
 }
 
+#brush-preview-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  margin-right: 4px;
+  overflow: hidden;   /* clip preview circle when brush size > container */
+}
+
+#brush-preview {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+#brush-color {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+#brush-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+#brush-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
 .tool-label span {
   min-width: 22px;
   text-align: right;
@@ -236,7 +275,9 @@ body {
   color: var(--text-muted);
 }
 
-textarea {
+textarea,
+select,
+.setting-input {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
@@ -252,8 +293,18 @@ textarea {
   appearance: none;
 }
 
-textarea:focus {
+textarea:focus,
+select:focus,
+.setting-input:focus {
   border-color: var(--accent);
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23888899' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
 }
 
 .setting-input {

@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Drawler</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -33,13 +36,14 @@
           </svg>
         </button>
         <div class="tool-sep"></div>
+        <div id="brush-preview-wrap" title="Brush Preview">
+          <div id="brush-preview"></div>
+        </div>
         <label class="tool-label" title="Brush size">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="5" />
-          </svg>
           <input type="range" id="brush-size" min="2" max="60" value="10">
           <span id="brush-size-val">10</span>
         </label>
+        <input type="color" id="brush-color" value="#1a1a1a" title="Brush color">
         <div class="tool-sep"></div>
         <!-- Pressure debug toggle — useful during iPad testing -->
         <button class="tool-btn" id="pressure-debug-btn" title="Show pressure debug">P</button>
@@ -147,7 +151,16 @@
 
         <div class="panel-section">
           <label class="panel-label">Model (Text2Image)</label>
-          <input type="text" id="setting-model" class="setting-input" placeholder="e.g. juggernautXL_v9">
+          <div style="display: flex; gap: 8px;">
+            <select id="setting-model" class="setting-input" style="flex: 1;">
+              <option value="">(Loading models...)</option>
+            </select>
+            <button id="refresh-models-btn" class="tool-btn" title="Refresh models list" style="flex: 0 0 36px; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="panel-section">
@@ -171,6 +184,15 @@
   <script src="js/canvas.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW Registered', reg))
+          .catch(err => console.error('SW Registration failed', err));
+      });
+    }
+  </script>
 </body>
 
 </html>
