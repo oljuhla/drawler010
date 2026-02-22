@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -8,29 +9,33 @@
   <title>Drawler</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
   <div id="app">
 
     <!-- Canvas area -->
     <div id="canvas-wrap">
+      <div id="canvas-bg">
+        <img id="ref-layer" class="hidden" alt="">
+      </div>
       <canvas id="drawing-canvas"></canvas>
 
       <!-- Floating toolbar over canvas -->
       <div id="canvas-toolbar">
         <button class="tool-btn" id="undo-btn" title="Undo (last stroke)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 10h10a5 5 0 0 1 0 10H7m-4-10 4-4-4-4"/>
+            <path d="M3 10h10a5 5 0 0 1 0 10H7m-4-10 4-4-4-4" />
           </svg>
         </button>
         <button class="tool-btn" id="clear-btn" title="Clear canvas">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M19 6l-1 14H6L5 6M8 6V4h8v2"/>
+            <path d="M3 6h18M19 6l-1 14H6L5 6M8 6V4h8v2" />
           </svg>
         </button>
         <div class="tool-sep"></div>
         <label class="tool-label" title="Brush size">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="5"/>
+            <circle cx="12" cy="12" r="5" />
           </svg>
           <input type="range" id="brush-size" min="2" max="60" value="10">
           <span id="brush-size-val">10</span>
@@ -38,6 +43,13 @@
         <div class="tool-sep"></div>
         <!-- Pressure debug toggle — useful during iPad testing -->
         <button class="tool-btn" id="pressure-debug-btn" title="Show pressure debug">P</button>
+        <!-- Dismiss reference layer — only visible when a reference is active -->
+        <button class="tool-btn hidden" id="clear-ref-btn" title="Dismiss reference image"
+          style="color: #e09050;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/><path d="m15 9-6 6m0-6 6 6"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Pressure debug overlay (hidden by default) -->
@@ -61,8 +73,7 @@
 
         <div class="panel-section">
           <label class="panel-label" for="neg-prompt-input">Negative</label>
-          <textarea id="neg-prompt-input" rows="2"
-            placeholder="blurry, bad quality, artifacts"></textarea>
+          <textarea id="neg-prompt-input" rows="2" placeholder="blurry, bad quality, artifacts"></textarea>
         </div>
 
         <div class="panel-section sliders">
@@ -96,8 +107,17 @@
 
         <div class="panel-section panel-footer">
           <small id="config-hint">
-            Edit <code>js/api.js</code> to set SwarmUI URL and model name.
+            Checking SwarmUI status…
           </small>
+          <button id="settings-open-btn" class="tool-btn"
+            style="width:100%; margin-top: 8px; justify-content:center; gap:6px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
+            Settings
+          </button>
         </div>
 
       </div>
@@ -115,6 +135,34 @@
       </div>
     </div>
 
+    <!-- Settings modal -->
+    <div id="settings-modal" class="hidden">
+      <div id="settings-inner">
+        <h3 style="margin-bottom: 8px;">Settings</h3>
+
+        <div class="panel-section">
+          <label class="panel-label">SwarmUI API URL</label>
+          <input type="text" id="setting-url" class="setting-input" value="http://localhost:7801">
+        </div>
+
+        <div class="panel-section">
+          <label class="panel-label">Model (Text2Image)</label>
+          <input type="text" id="setting-model" class="setting-input" placeholder="e.g. juggernautXL_v9">
+        </div>
+
+        <div class="panel-section">
+          <label class="panel-label">ControlNet Union Model</label>
+          <input type="text" id="setting-controlnet" class="setting-input" placeholder="e.g. controlnet_union">
+        </div>
+
+        <div id="settings-actions" style="display: flex; gap: 10px; margin-top: 12px;">
+          <button id="settings-save-btn" style="flex: 1;">Save</button>
+          <button id="settings-close-btn"
+            style="flex: 1; background: transparent; border: 1px solid var(--panel-border);">Cancel</button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- #app -->
 
   <!-- Perfect Freehand — pressure-aware stroke rendering -->
@@ -124,4 +172,5 @@
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
 </body>
+
 </html>

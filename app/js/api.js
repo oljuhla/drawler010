@@ -42,15 +42,13 @@
 
   const CONFIG = {
     // SwarmUI host. Use your machine's LAN IP when accessing from iPad.
-    baseURL: 'http://localhost:7801',
+    baseURL: localStorage.getItem('drawler_api_url') || 'http://localhost:7801',
 
     // Exact model name as shown in SwarmUI (no path, no extension needed for most setups)
-    // TODO: Replace with actual model name after SwarmUI is running
-    model: 'YOUR_MODEL_NAME_HERE',
+    model: localStorage.getItem('drawler_model') || 'YOUR_MODEL_NAME_HERE',
 
     // ControlNet model name (as listed in SwarmUI's ControlNet dropdown)
-    // TODO: Replace with actual ControlNet Union model name
-    controlnetModel: 'YOUR_CONTROLNET_MODEL_HERE',
+    controlnetModel: localStorage.getItem('drawler_controlnet') || 'YOUR_CONTROLNET_MODEL_HERE',
 
     // ControlNet type / preprocessor hint
     // Typical value for sketches: "scribble"
@@ -241,7 +239,11 @@
   async function checkConnectivity() {
     try {
       const res = await fetchSwarm('/API/GetNewSession', {});
-      return !!res.session_id;
+      if (res.session_id) {
+        sessionId = res.session_id;  // reuse — avoids a second GetNewSession on first generate
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -253,9 +255,13 @@
     generate,
     checkConnectivity,
     getConfig: () => ({ ...CONFIG }),
-    setBaseURL: (url) => {
-      CONFIG.baseURL = url.replace(/\/$/, '');
-      sessionId = null;  // reset session when URL changes
+    updateConfig: (updates) => {
+      if (updates.baseURL !== undefined) {
+        CONFIG.baseURL = updates.baseURL.replace(/\/$/, '');
+        sessionId = null;  // reset session when URL changes
+      }
+      if (updates.model !== undefined) CONFIG.model = updates.model;
+      if (updates.controlnetModel !== undefined) CONFIG.controlnetModel = updates.controlnetModel;
     },
   };
 

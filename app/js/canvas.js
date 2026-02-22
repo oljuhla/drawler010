@@ -12,7 +12,7 @@
  * The library exports getStroke under window.perfectFreehand or directly on window.
  */
 
-;(function () {
+; (function () {
   'use strict';
 
   // ── Perfect Freehand resolution ─────────────────────────────────────────
@@ -41,18 +41,33 @@
   // Pressure debug callback
   let onPressureDebug = null;
 
+  // ── Local Storage ────────────────────────────────────────────────────────
+
+  function saveState() {
+    try { localStorage.setItem('drawler_strokes', JSON.stringify(strokes)); } catch (e) { }
+  }
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem('drawler_strokes');
+      if (saved) strokes = JSON.parse(saved);
+    } catch (e) { }
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────
 
   function init() {
     canvas = document.getElementById('drawing-canvas');
     ctx = canvas.getContext('2d', { willReadFrequently: false });
 
+    loadState();
+
     sizeCanvas();
     window.addEventListener('resize', sizeCanvas);
 
-    canvas.addEventListener('pointerdown',   onPointerDown,   { passive: false });
-    canvas.addEventListener('pointermove',   onPointerMove,   { passive: false });
-    canvas.addEventListener('pointerup',     onPointerUp,     { passive: false });
+    canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+    canvas.addEventListener('pointermove', onPointerMove, { passive: false });
+    canvas.addEventListener('pointerup', onPointerUp, { passive: false });
     canvas.addEventListener('pointercancel', onPointerCancel, { passive: false });
 
     // Prevent context menu on long-press (iOS)
@@ -68,14 +83,20 @@
     const dpr = window.devicePixelRatio || 1;
 
     // Determine the largest square that fits in the container
-    const availW = wrap.clientWidth  - 28;  // 14px padding each side
+    const availW = wrap.clientWidth - 28;  // 14px padding each side
     const availH = wrap.clientHeight - 28;
     const side = Math.min(availW, availH);
 
-    canvas.style.width  = side + 'px';
+    canvas.style.width = side + 'px';
     canvas.style.height = side + 'px';
-    canvas.width  = Math.round(side * dpr);
+    canvas.width = Math.round(side * dpr);
     canvas.height = Math.round(side * dpr);
+
+    const bg = document.getElementById('canvas-bg');
+    if (bg) {
+      bg.style.width = side + 'px';
+      bg.style.height = side + 'px';
+    }
 
     // Scale the context so we draw in logical pixels everywhere
     ctx.scale(dpr, dpr);
@@ -141,6 +162,7 @@
         size: brushSize,
         color: brushColor,
       });
+      saveState();
     }
     currentPoints = [];
     isDrawing = false;
@@ -243,7 +265,7 @@
    */
   function exportBase64() {
     const offscreen = document.createElement('canvas');
-    offscreen.width  = EXPORT_SIZE;
+    offscreen.width = EXPORT_SIZE;
     offscreen.height = EXPORT_SIZE;
     const octx = offscreen.getContext('2d');
 
@@ -279,18 +301,20 @@
     strokes = [];
     currentPoints = [];
     isDrawing = false;
+    saveState();
     requestRender();
   }
 
   function undo() {
     if (strokes.length > 0) {
       strokes.pop();
+      saveState();
       requestRender();
     }
   }
 
   function setOptions(opts = {}) {
-    if (opts.size  != null) brushSize  = opts.size;
+    if (opts.size != null) brushSize = opts.size;
     if (opts.color != null) brushColor = opts.color;
   }
 

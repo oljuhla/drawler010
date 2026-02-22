@@ -12,55 +12,101 @@
  *  - Status / progress reporting
  */
 
-;(function () {
+; (function () {
   'use strict';
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
 
   const $ = id => document.getElementById(id);
 
-  const promptInput    = $('prompt-input');
+  const promptInput = $('prompt-input');
   const negPromptInput = $('neg-prompt-input');
-  const generateBtn    = $('generate-btn');
-  const clearBtn       = $('clear-btn');
-  const undoBtn        = $('undo-btn');
+  const generateBtn = $('generate-btn');
+  const clearBtn = $('clear-btn');
+  const undoBtn = $('undo-btn');
 
   const brushSizeInput = $('brush-size');
-  const brushSizeVal   = $('brush-size-val');
-  const stepsInput     = $('steps-input');
-  const stepsVal       = $('steps-val');
-  const strengthInput  = $('strength-input');
-  const strengthVal    = $('strength-val');
-  const cfgInput       = $('cfg-input');
-  const cfgVal         = $('cfg-val');
+  const brushSizeVal = $('brush-size-val');
+  const stepsInput = $('steps-input');
+  const stepsVal = $('steps-val');
+  const strengthInput = $('strength-input');
+  const strengthVal = $('strength-val');
+  const cfgInput = $('cfg-input');
+  const cfgVal = $('cfg-val');
 
-  const statusSection  = $('status-section');
-  const progressFill   = $('progress-fill');
-  const statusText     = $('status-text');
+  const statusSection = $('status-section');
+  const progressFill = $('progress-fill');
+  const statusText = $('status-text');
 
-  const resultOverlay  = $('result-overlay');
-  const resultImg      = $('result-img');
+  const resultOverlay = $('result-overlay');
+  const resultImg = $('result-img');
   const closeResultBtn = $('close-result-btn');
-  const saveBtn        = $('save-btn');
-  const useAsRefBtn    = $('use-as-ref-btn');
+  const saveBtn = $('save-btn');
+  const useAsRefBtn = $('use-as-ref-btn');
+  const refLayer = $('ref-layer');
+  const clearRefBtn = $('clear-ref-btn');
 
-  const pressureDebug  = $('pressure-debug');
+  const pressureDebug = $('pressure-debug');
   const pressureDebugBtn = $('pressure-debug-btn');
-  const dbgPressure    = $('dbg-pressure');
-  const dbgTiltX       = $('dbg-tiltx');
-  const dbgTiltY       = $('dbg-tilty');
-  const dbgType        = $('dbg-type');
+  const dbgPressure = $('dbg-pressure');
+  const dbgTiltX = $('dbg-tiltx');
+  const dbgTiltY = $('dbg-tilty');
+  const dbgType = $('dbg-type');
+
+  const settingsBtn = $('settings-open-btn');
+  const settingsModal = $('settings-modal');
+  const settingsSaveBtn = $('settings-save-btn');
+  const settingsCloseBtn = $('settings-close-btn');
+  const settingUrl = $('setting-url');
+  const settingModel = $('setting-model');
+  const settingControlnet = $('setting-controlnet');
+
+  // ── Local Storage ────────────────────────────────────────────────────────
+
+  function loadUIState() {
+    const p = localStorage.getItem('drawler_prompt');
+    if (p !== null) promptInput.value = p;
+
+    const n = localStorage.getItem('drawler_negPrompt');
+    if (n !== null) negPromptInput.value = n;
+
+    const b = localStorage.getItem('drawler_brushSize');
+    if (b !== null) { brushSizeInput.value = b; brushSizeVal.textContent = b; }
+
+    const st = localStorage.getItem('drawler_steps');
+    if (st !== null) { stepsInput.value = st; stepsVal.textContent = st; }
+
+    const str = localStorage.getItem('drawler_strength');
+    if (str !== null) { strengthInput.value = str; strengthVal.textContent = (str / 100).toFixed(2); }
+
+    const cfg = localStorage.getItem('drawler_cfg');
+    if (cfg !== null) { cfgInput.value = cfg; cfgVal.textContent = (cfg / 10).toFixed(1); }
+  }
+
+  function saveUIState() {
+    localStorage.setItem('drawler_prompt', promptInput.value);
+    localStorage.setItem('drawler_negPrompt', negPromptInput.value);
+    localStorage.setItem('drawler_brushSize', brushSizeInput.value);
+    localStorage.setItem('drawler_steps', stepsInput.value);
+    localStorage.setItem('drawler_strength', strengthInput.value);
+    localStorage.setItem('drawler_cfg', cfgInput.value);
+  }
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
   function init() {
+    loadUIState();
     DrawingCanvas.init();
+
+    promptInput.addEventListener('input', saveUIState);
+    negPromptInput.addEventListener('input', saveUIState);
 
     bindSliders();
     bindToolbar();
     bindGenerate();
     bindResultOverlay();
     bindPressureDebug();
+    bindSettingsModal();
 
     // Set initial brush options
     DrawingCanvas.setOptions({ size: parseInt(brushSizeInput.value, 10) });
@@ -76,18 +122,22 @@
       const v = parseInt(brushSizeInput.value, 10);
       brushSizeVal.textContent = v;
       DrawingCanvas.setOptions({ size: v });
+      saveUIState();
     });
 
     stepsInput.addEventListener('input', () => {
       stepsVal.textContent = stepsInput.value;
+      saveUIState();
     });
 
     strengthInput.addEventListener('input', () => {
       strengthVal.textContent = (parseInt(strengthInput.value, 10) / 100).toFixed(2);
+      saveUIState();
     });
 
     cfgInput.addEventListener('input', () => {
       cfgVal.textContent = (parseInt(cfgInput.value, 10) / 10).toFixed(1);
+      saveUIState();
     });
   }
 
@@ -96,7 +146,10 @@
   function bindToolbar() {
     clearBtn.addEventListener('click', () => {
       if (DrawingCanvas.isEmpty()) return;
-      if (confirm('Clear the canvas?')) DrawingCanvas.clear();
+      if (confirm('Clear the canvas?')) {
+        DrawingCanvas.clear();
+        clearRef();
+      }
     });
 
     undoBtn.addEventListener('click', () => {
@@ -129,10 +182,10 @@
 
     try {
       const imageBase64 = DrawingCanvas.exportBase64();
-      const negPrompt   = negPromptInput.value.trim() || 'blurry, bad quality, artifacts, jpeg noise';
-      const steps       = parseInt(stepsInput.value, 10);
-      const strength    = parseInt(strengthInput.value, 10) / 100;
-      const cfg         = parseInt(cfgInput.value, 10) / 10;
+      const negPrompt = negPromptInput.value.trim() || 'blurry, bad quality, artifacts, jpeg noise';
+      const steps = parseInt(stepsInput.value, 10);
+      const strength = parseInt(strengthInput.value, 10) / 100;
+      const cfg = parseInt(cfgInput.value, 10) / 10;
 
       setStatus('Connecting to SwarmUI…', 0);
 
@@ -205,37 +258,23 @@
     });
 
     useAsRefBtn.addEventListener('click', () => {
-      // Display the generated image as a semi-transparent reference layer over the canvas
-      const canvasEl = document.getElementById('drawing-canvas');
-      const canvasWrap = canvasEl.parentElement;
+      // Display the generated image as a semi-transparent reference layer behind the canvas
+      refLayer.src = resultImg.src;
+      refLayer.classList.remove('hidden');
+      clearRefBtn.classList.remove('hidden');
 
-      // Remove any existing reference layer
-      const existing = document.getElementById('ref-layer');
-      if (existing) existing.remove();
-
-      const ref = document.createElement('img');
-      ref.id = 'ref-layer';
-      ref.src = resultImg.src;
-      Object.assign(ref.style, {
-        position: 'absolute',
-        inset: 0,
-        width: canvasEl.style.width,
-        height: canvasEl.style.height,
-        objectFit: 'contain',
-        opacity: '0.35',
-        pointerEvents: 'none',
-        borderRadius: '4px',
-        // Centre it the same way the canvas is centred
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-      });
-
-      canvasWrap.appendChild(ref);
       hideResult();
       setStatus('Reference overlay active — draw on top of it.', 1);
       setTimeout(hideStatus, 3000);
     });
+
+    clearRefBtn.addEventListener('click', clearRef);
+  }
+
+  function clearRef() {
+    refLayer.src = '';
+    refLayer.classList.add('hidden');
+    clearRefBtn.classList.add('hidden');
   }
 
   // ── Pressure debug ─────────────────────────────────────────────────────────
@@ -252,9 +291,43 @@
     DrawingCanvas.setDebugCallback(({ pressure, tiltX, tiltY, type }) => {
       if (!debugVisible) return;
       dbgPressure.textContent = pressure.toFixed(3);
-      dbgTiltX.textContent    = tiltX ?? '—';
-      dbgTiltY.textContent    = tiltY ?? '—';
-      dbgType.textContent     = type  ?? '—';
+      dbgTiltX.textContent = tiltX ?? '—';
+      dbgTiltY.textContent = tiltY ?? '—';
+      dbgType.textContent = type ?? '—';
+    });
+  }
+
+  // ── Settings Modal ─────────────────────────────────────────────────────────
+
+  function bindSettingsModal() {
+    settingsBtn.addEventListener('click', () => {
+      const config = SwarmAPI.getConfig();
+      settingUrl.value = config.baseURL;
+      settingModel.value = config.model;
+      settingControlnet.value = config.controlnetModel;
+      settingsModal.classList.remove('hidden');
+    });
+
+    const closeSettings = () => settingsModal.classList.add('hidden');
+
+    settingsCloseBtn.addEventListener('click', closeSettings);
+    settingsModal.addEventListener('click', e => {
+      if (e.target === settingsModal) closeSettings();
+    });
+
+    settingsSaveBtn.addEventListener('click', () => {
+      const baseURL = settingUrl.value.trim();
+      const model = settingModel.value.trim();
+      const controlnetModel = settingControlnet.value.trim();
+
+      SwarmAPI.updateConfig({ baseURL, model, controlnetModel });
+
+      localStorage.setItem('drawler_api_url', baseURL);
+      localStorage.setItem('drawler_model', model);
+      localStorage.setItem('drawler_controlnet', controlnetModel);
+
+      closeSettings();
+      checkSwarm(); // re-check connectivity after change
     });
   }
 
@@ -262,15 +335,16 @@
 
   async function checkSwarm() {
     const hint = document.getElementById('config-hint');
+    hint.innerHTML = 'Checking SwarmUI status…';
     try {
       const ok = await SwarmAPI.checkConnectivity();
       if (ok) {
         hint.innerHTML = 'SwarmUI <span style="color:#50e0a0">connected</span>';
       } else {
-        hint.innerHTML = 'SwarmUI <span style="color:#e09050">not reachable</span> — check <code>js/api.js</code>';
+        hint.innerHTML = 'SwarmUI <span style="color:#e09050">not reachable</span> — check Settings';
       }
     } catch {
-      hint.innerHTML = 'SwarmUI <span style="color:#e05050">offline</span> — check <code>js/api.js</code>';
+      hint.innerHTML = 'SwarmUI <span style="color:#e05050">offline</span> — check Settings';
     }
   }
 
