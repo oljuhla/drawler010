@@ -24,6 +24,7 @@
   const generateBtn = $('generate-btn');
   const clearBtn = $('clear-btn');
   const undoBtn = $('undo-btn');
+  const saveSketchBtn = $('save-sketch-btn');
 
   const brushSizeInput = $('brush-size');
   const brushSizeVal = $('brush-size-val');
@@ -177,6 +178,14 @@
 
     undoBtn.addEventListener('click', () => {
       DrawingCanvas.undo();
+    });
+
+    saveSketchBtn.addEventListener('click', () => {
+      if (DrawingCanvas.isEmpty()) return;
+      const a = document.createElement('a');
+      a.href = DrawingCanvas.exportDataURL();
+      a.download = 'sketch-' + Date.now() + '.png';
+      a.click();
     });
   }
 
