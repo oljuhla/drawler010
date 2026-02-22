@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Drawler</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Canvas area -->
+    <div id="canvas-wrap">
+      <canvas id="drawing-canvas"></canvas>
+
+      <!-- Floating toolbar over canvas -->
+      <div id="canvas-toolbar">
+        <button class="tool-btn" id="undo-btn" title="Undo (last stroke)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 10h10a5 5 0 0 1 0 10H7m-4-10 4-4-4-4"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="clear-btn" title="Clear canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6l-1 14H6L5 6M8 6V4h8v2"/>
+          </svg>
+        </button>
+        <div class="tool-sep"></div>
+        <label class="tool-label" title="Brush size">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="5"/>
+          </svg>
+          <input type="range" id="brush-size" min="2" max="60" value="10">
+          <span id="brush-size-val">10</span>
+        </label>
+        <div class="tool-sep"></div>
+        <!-- Pressure debug toggle — useful during iPad testing -->
+        <button class="tool-btn" id="pressure-debug-btn" title="Show pressure debug">P</button>
+      </div>
+
+      <!-- Pressure debug overlay (hidden by default) -->
+      <div id="pressure-debug" class="hidden">
+        <span>pressure: <b id="dbg-pressure">0.00</b></span>
+        <span>tiltX: <b id="dbg-tiltx">0</b></span>
+        <span>tiltY: <b id="dbg-tilty">0</b></span>
+        <span>type: <b id="dbg-type">—</b></span>
+      </div>
+    </div>
+
+    <!-- Controls panel -->
+    <div id="panel">
+      <div id="panel-inner">
+
+        <div class="panel-section">
+          <label class="panel-label" for="prompt-input">Prompt</label>
+          <textarea id="prompt-input" rows="4"
+            placeholder="a cat sitting on a windowsill, illustration, warm light"></textarea>
+        </div>
+
+        <div class="panel-section">
+          <label class="panel-label" for="neg-prompt-input">Negative</label>
+          <textarea id="neg-prompt-input" rows="2"
+            placeholder="blurry, bad quality, artifacts"></textarea>
+        </div>
+
+        <div class="panel-section sliders">
+          <div class="slider-row">
+            <label for="steps-input">Steps</label>
+            <input type="range" id="steps-input" min="1" max="20" value="6">
+            <span class="slider-val" id="steps-val">6</span>
+          </div>
+          <div class="slider-row">
+            <label for="strength-input">ControlNet</label>
+            <input type="range" id="strength-input" min="0" max="100" value="85">
+            <span class="slider-val" id="strength-val">0.85</span>
+          </div>
+          <div class="slider-row">
+            <label for="cfg-input">CFG</label>
+            <input type="range" id="cfg-input" min="10" max="150" value="10">
+            <span class="slider-val" id="cfg-val">1.0</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <button id="generate-btn">Generate</button>
+        </div>
+
+        <div id="status-section" class="panel-section hidden">
+          <div id="progress-bar">
+            <div id="progress-fill"></div>
+          </div>
+          <span id="status-text">Generating…</span>
+        </div>
+
+        <div class="panel-section panel-footer">
+          <small id="config-hint">
+            Edit <code>js/api.js</code> to set SwarmUI URL and model name.
+          </small>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Result overlay -->
+    <div id="result-overlay" class="hidden">
+      <div id="result-inner">
+        <img id="result-img" alt="Generated image">
+        <div id="result-actions">
+          <button id="use-as-ref-btn">Use as reference</button>
+          <button id="save-btn">Save</button>
+          <button id="close-result-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <!-- Perfect Freehand — pressure-aware stroke rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/perfect-freehand@1.2.2/dist/perfect-freehand.min.js"></script>
+
+  <script src="js/canvas.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

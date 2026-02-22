@@ -1,0 +1,444 @@
+/* ─────────────────────────────────────────
+   Drawler — browser drawing app
+   Target: iPad Safari + desktop Chrome
+   Dark chrome, white canvas
+───────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:           #1a1a1e;
+  --panel-bg:     #26262c;
+  --panel-border: #3a3a42;
+  --accent:       #6c63ff;
+  --accent-hover: #857dff;
+  --text:         #e8e8f0;
+  --text-muted:   #888899;
+  --canvas-bg:    #ffffff;
+  --danger:       #e05050;
+  --radius:       10px;
+  --panel-w:      300px;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App shell ── */
+
+#app {
+  display: flex;
+  height: 100dvh;        /* dynamic viewport height — accounts for iPad Safari chrome */
+  width: 100vw;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ── Canvas area ── */
+
+#canvas-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+  min-width: 0;
+}
+
+#drawing-canvas {
+  display: block;
+  /* Actual size set by JS; style size matches logical resolution */
+  background: var(--canvas-bg);
+  cursor: crosshair;
+  /* Prevent iOS scrolling / magnification while drawing */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  border-radius: 4px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+}
+
+/* ── Floating toolbar over canvas ── */
+
+#canvas-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30,30,36,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tool-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tool-btn:hover, .tool-btn:active {
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+}
+
+.tool-btn#clear-btn:hover {
+  color: var(--danger);
+}
+
+.tool-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--panel-border);
+  margin: 0 2px;
+}
+
+.tool-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.tool-label svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tool-label input[type="range"] {
+  width: 90px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.tool-label span {
+  min-width: 22px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* ── Pressure debug overlay ── */
+
+#pressure-debug {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0,0,0,0.75);
+  color: #a0ffb0;
+  font-family: "SF Mono", "Fira Mono", monospace;
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  pointer-events: none;
+  line-height: 1.6;
+}
+
+/* ── Controls panel ── */
+
+#panel {
+  width: var(--panel-w);
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#panel-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+textarea {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+
+textarea:focus {
+  border-color: var(--accent);
+}
+
+/* ── Sliders ── */
+
+.sliders {
+  gap: 12px;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-row label {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.slider-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.slider-val {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ── Generate button ── */
+
+#generate-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-appearance: none;
+}
+
+#generate-btn:hover {
+  background: var(--accent-hover);
+}
+
+#generate-btn:active {
+  transform: scale(0.97);
+}
+
+#generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Status / progress ── */
+
+#status-section {
+  gap: 6px;
+}
+
+#progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+#status-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Panel footer ── */
+
+.panel-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.panel-footer small {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.panel-footer code {
+  font-family: "SF Mono", "Fira Mono", monospace;
+  background: rgba(0,0,0,0.3);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ── Result overlay ── */
+
+#result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#result-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 90vw;
+  max-height: 90dvh;
+}
+
+#result-img {
+  max-width: 100%;
+  max-height: 70dvh;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+  object-fit: contain;
+}
+
+#result-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#result-actions button {
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-appearance: none;
+}
+
+#result-actions button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+#save-btn {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  font-weight: 600;
+}
+
+/* ── Utility ── */
+
+.hidden {
+  display: none !important;
+}
+
+/* ── Portrait / small screen layout ──
+   On iPad portrait or phone, panel moves below canvas
+────────────────────────────────────── */
+
+@media (max-width: 700px), (orientation: portrait) and (max-width: 900px) {
+  #app {
+    flex-direction: column;
+  }
+
+  #canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--panel-border);
+    max-height: 42dvh;
+  }
+
+  #panel-inner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .panel-section {
+    flex: 1 1 140px;
+  }
+
+  .panel-section:has(#generate-btn) {
+    flex: 1 1 100%;
+  }
+
+  .sliders .slider-row {
+    grid-template-columns: 70px 1fr 30px;
+  }
+}
