@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+swarmui/
+models/
+outputs/
+__pycache__/
+.DS_Store
