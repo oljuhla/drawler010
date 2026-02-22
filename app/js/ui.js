@@ -25,6 +25,8 @@
   const clearBtn = $('clear-btn');
   const undoBtn = $('undo-btn');
   const saveSketchBtn = $('save-sketch-btn');
+  const importImgBtn = $('import-img-btn');
+  const importImgInput = $('import-img-input');
 
   const brushSizeInput = $('brush-size');
   const brushSizeVal = $('brush-size-val');
@@ -186,6 +188,25 @@
       a.href = DrawingCanvas.exportDataURL();
       a.download = 'sketch-' + Date.now() + '.png';
       a.click();
+    });
+
+    importImgBtn.addEventListener('click', () => {
+      importImgInput.value = '';   // allow re-selecting the same file
+      importImgInput.click();
+    });
+
+    importImgInput.addEventListener('change', () => {
+      const file = importImgInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        refLayer.src = e.target.result;
+        refLayer.classList.remove('hidden');
+        clearRefBtn.classList.remove('hidden');
+        setStatus('Reference image loaded — draw on top of it.', 1);
+        setTimeout(hideStatus, 3000);
+      };
+      reader.readAsDataURL(file);
     });
   }
 
