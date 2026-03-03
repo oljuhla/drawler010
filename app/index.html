@@ -63,7 +63,9 @@
         <div class="tool-sep"></div>
         <!-- Pressure debug toggle — useful during iPad testing -->
         <button class="tool-btn" id="pressure-debug-btn" title="Show pressure debug">P</button>
-        <!-- Dismiss reference layer — only visible when a reference is active -->
+        <!-- Reference layer controls — only visible when a reference is active -->
+        <input type="range" id="ref-opacity" class="hidden" min="5" max="95" value="35"
+          title="Reference layer opacity" style="width:70px; accent-color:#e09050;">
         <button class="tool-btn hidden" id="clear-ref-btn" title="Dismiss reference image"
           style="color: #e09050;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -149,6 +151,7 @@
         <img id="result-img" alt="Generated image">
         <div id="result-actions">
           <button id="use-as-ref-btn">Use as reference</button>
+          <button id="copy-result-btn">Copy</button>
           <button id="save-btn">Save</button>
           <button id="close-result-btn">Close</button>
         </div>

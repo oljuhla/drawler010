@@ -47,10 +47,12 @@
   const resultOverlay = $('result-overlay');
   const resultImg = $('result-img');
   const closeResultBtn = $('close-result-btn');
+  const copyBtn = $('copy-result-btn');
   const saveBtn = $('save-btn');
   const useAsRefBtn = $('use-as-ref-btn');
   const refLayer = $('ref-layer');
   const clearRefBtn = $('clear-ref-btn');
+  const refOpacityInput = $('ref-opacity');
 
   const pressureDebug = $('pressure-debug');
   const pressureDebugBtn = $('pressure-debug-btn');
@@ -201,8 +203,7 @@
       const reader = new FileReader();
       reader.onload = e => {
         refLayer.src = e.target.result;
-        refLayer.classList.remove('hidden');
-        clearRefBtn.classList.remove('hidden');
+        showRef();
         setStatus('Reference image loaded — draw on top of it.', 1);
         setTimeout(hideStatus, 3000);
       };
@@ -302,19 +303,58 @@
       if (e.target === resultOverlay) hideResult();
     });
 
-    saveBtn.addEventListener('click', () => {
+    copyBtn.addEventListener('click', async () => {
       if (!resultImg.src) return;
+      try {
+        const response = await fetch(resultImg.src);
+        const blob = await response.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        setStatus('Copied to clipboard! Switch to Procreate and Paste.', 1);
+        setTimeout(hideStatus, 3000);
+      } catch (err) {
+        console.error('[ui] Copy failed:', err);
+        setStatus('Copy failed. Try saving instead.', 0);
+        setTimeout(hideStatus, 3000);
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      if (!resultImg.src) return;
+
+      // If supported (iOS Safari 15+), use the native Share Sheet
+      if (navigator.share) {
+        try {
+          const response = await fetch(resultImg.src);
+          const blob = await response.blob();
+          const file = new File([blob], 'drawler-' + Date.now() + '.png', { type: 'image/png' });
+
+          await navigator.share({
+            files: [file],
+            title: 'Drawler Generation',
+          });
+        } catch (err) {
+          // Fallback if share is cancelled or fails
+          console.log('[ui] Share cancelled or failed:', err);
+          downloadFallback();
+        }
+      } else {
+        downloadFallback();
+      }
+    });
+
+    function downloadFallback() {
       const a = document.createElement('a');
       a.href = resultImg.src;
       a.download = 'drawler-' + Date.now() + '.png';
       a.click();
-    });
+    }
 
     useAsRefBtn.addEventListener('click', () => {
       // Display the generated image as a semi-transparent reference layer behind the canvas
       refLayer.src = resultImg.src;
-      refLayer.classList.remove('hidden');
-      clearRefBtn.classList.remove('hidden');
+      showRef();
 
       hideResult();
       setStatus('Reference overlay active — draw on top of it.', 1);
@@ -322,11 +362,24 @@
     });
 
     clearRefBtn.addEventListener('click', clearRef);
+
+    refOpacityInput.addEventListener('input', () => {
+      refLayer.style.opacity = parseInt(refOpacityInput.value, 10) / 100;
+    });
+  }
+
+  function showRef() {
+    refLayer.classList.remove('hidden');
+    refOpacityInput.classList.remove('hidden');
+    clearRefBtn.classList.remove('hidden');
+    // Sync opacity to current slider value (in case it changed since last use)
+    refLayer.style.opacity = parseInt(refOpacityInput.value, 10) / 100;
   }
 
   function clearRef() {
     refLayer.src = '';
     refLayer.classList.add('hidden');
+    refOpacityInput.classList.add('hidden');
     clearRefBtn.classList.add('hidden');
   }
 
